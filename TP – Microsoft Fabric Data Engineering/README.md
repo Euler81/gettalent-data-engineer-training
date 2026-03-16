@@ -2,7 +2,8 @@
 <span style="color:#FFD700;">π</span> Data Strategy & Consulting
 </h1>
 
-# Data Ingestion Pipeline: Microsoft Fabric & AdventureWorks 🚀
+# Data Ingestion Pipeline: 
+### Microsoft Fabric & AdventureWorks 🚀
 
 Este proyecto implementa una solución de ingeniería de datos en **Microsoft Fabric** para la extracción automatizada y dinámica de datos desde una base de datos local (**AdventureWorks2019**) hacia un entorno de nube, siguiendo una arquitectura de Medallón.
 
