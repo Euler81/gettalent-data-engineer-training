@@ -399,11 +399,6 @@ Wait2 (180s) → entre NB_Bronze y NB_Silver
 ```
 > El entorno Trial de Fabric tiene capacidad limitada de sesiones Spark concurrentes. Sin los waits, los notebooks consecutivos compiten por la misma sesión Livy y fallan con error 430.
 
----
-
-## 📄 Documentación
-
-- 📘 [Documento Técnico v4](./TP_Final_Documento_Tecnico_Aprendiz_Euler_Diego_v4.docx) — Arquitectura, decisiones de diseño, modelo Gold y manual de ejecución completo.
 
 ---
 
