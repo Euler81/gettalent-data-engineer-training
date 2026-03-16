@@ -1,9 +1,13 @@
+<h1 align="center">
+<span style="color:#FFD700;">π</span> Pi Data Strategy & Consulting
+</h1>
+
+
 # 🏭 TP Final — Ingeniería de Datos en Microsoft Fabric
 
 > **Autor:** Euler, Diego  
 > **Curso:** Ingeniería de Datos en Azure / Microsoft Fabric  
-> **Institución:** Padre Carlos Mugica 2452, Quilmes, Buenos Aires  
-> **Entrega:** Marzo 2026
+
 
 ---
 
