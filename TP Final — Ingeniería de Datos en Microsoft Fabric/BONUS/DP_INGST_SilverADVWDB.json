@@ -1,0 +1,386 @@
+{
+    "name": "DP_INGST_SilverADVWDB",
+    "objectId": "8ea63884-e41b-4f37-8266-b9513bdfcfd2",
+    "properties": {
+        "description": "Pipeline Silver ADVWDB — Lookup config → Filter ADVWDB → ForEach: IfCondition(SalesOrderDetail incremental | Product total) → Copy SQL→lh_silver_staging → nb_silver_ADVWDB.",
+        "activities": [
+            {
+                "name": "lk_config_origin_bronze_silver",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "LakehouseTableSource",
+                        "datasetSettings": {
+                            "annotations": [],
+                            "linkedService": {
+                                "name": "lh_config",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "Lakehouse",
+                                    "typeProperties": {
+                                        "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                        "artifactId": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                        "rootFolder": "Tables"
+                                    }
+                                }
+                            },
+                            "typeProperties": {
+                                "schema": "dbo",
+                                "table": "origin_bronze_silver"
+                            }
+                        }
+                    },
+                    "firstRowOnly": false,
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "lh_config",
+                            "properties": {
+                                "annotations": [],
+                                "type": "Lakehouse",
+                                "typeProperties": {
+                                    "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                    "artifactId": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                    "rootFolder": "Tables"
+                                }
+                            }
+                        },
+                        "type": "LakehouseTable",
+                        "schema": [],
+                        "typeProperties": {
+                            "schema": "dbo",
+                            "table": "origin_bronze_silver"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "ft_origin_ADVWDB",
+                "type": "Filter",
+                "dependsOn": [
+                    {
+                        "activity": "lk_config_origin_bronze_silver",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('lk_config_origin_bronze_silver').output.value",
+                        "type": "Expression"
+                    },
+                    "condition": {
+                        "value": "@and(equals(item().origen, 'ADVWDB'), equals(item().activo, 1))",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "fe_origin_ADVWDB",
+                "description": "Itera tablas ADVWDB activas. IfCondition: SalesOrderDetail (incremental) o Product (total).",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "ft_origin_ADVWDB",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('ft_origin_ADVWDB').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": true,
+                    "activities": [
+                        {
+                            "name": "if_tabla_ADVWDB",
+                            "description": "SalesOrderDetail=incremental, Product=total",
+                            "type": "IfCondition",
+                            "dependsOn": [],
+                            "typeProperties": {
+                                "expression": {
+                                    "value": "@equals(item().nombre_tabla, 'SalesOrderDetail')",
+                                    "type": "Expression"
+                                },
+                                "ifFalseActivities": [
+                                    {
+                                        "name": "ca_silver_ADVWDB_Product",
+                                        "type": "Copy",
+                                        "dependsOn": [],
+                                        "policy": {
+                                            "timeout": "0.00:15:00",
+                                            "retry": 1,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "typeProperties": {
+                                            "source": {
+                                                "type": "SqlServerSource",
+                                                "sqlReaderQuery": "SELECT TOP 1000 * FROM Production.Product ORDER BY ProductID",
+                                                "queryTimeout": "02:00:00",
+                                                "partitionOption": "None",
+                                                "datasetSettings": {
+                                                    "annotations": [],
+                                                    "type": "SqlServerTable",
+                                                    "schema": [],
+                                                    "typeProperties": {
+                                                        "database": "AdventureWorks2019"
+                                                    },
+                                                    "externalReferences": {
+                                                        "connection": "cafffe28-7d56-4ca4-ac0e-3ac73f036368"
+                                                    }
+                                                }
+                                            },
+                                            "sink": {
+                                                "type": "LakehouseTableSink",
+                                                "tableActionOption": "OverwriteSchema",
+                                                "partitionOption": "None",
+                                                "applyVOrder": false,
+                                                "datasetSettings": {
+                                                    "annotations": [],
+                                                    "linkedService": {
+                                                        "name": "lh_silver",
+                                                        "properties": {
+                                                            "annotations": [],
+                                                            "type": "Lakehouse",
+                                                            "typeProperties": {
+                                                                "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                                                "artifactId": "4d897e0a-b68c-4840-9910-752862308e5b",
+                                                                "rootFolder": "Tables"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "LakehouseTable",
+                                                    "schema": [],
+                                                    "typeProperties": {
+                                                        "schema": "ADVWDB",
+                                                        "table": "Product_staging"
+                                                    }
+                                                }
+                                            },
+                                            "enableStaging": false,
+                                            "translator": {
+                                                "type": "TabularTranslator",
+                                                "typeConversion": true,
+                                                "typeConversionSettings": {
+                                                    "allowDataTruncation": true,
+                                                    "treatBooleanAsNumber": false
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "nb_silver_ADVWDB_Product",
+                                        "type": "TridentNotebook",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "ca_silver_ADVWDB_Product",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.00:30:00",
+                                            "retry": 2,
+                                            "retryIntervalInSeconds": 60,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "typeProperties": {
+                                            "notebookId": "37c7b35f-09cc-4823-9320-90d324b80e9f",
+                                            "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                            "parameters": {
+                                                "origen_param": {
+                                                    "value": "ADVWDB",
+                                                    "type": "string"
+                                                },
+                                                "nombre_tabla_param": {
+                                                    "value": "Product",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "lakehouseReferences": {
+                                                "defaultLakehouse": {
+                                                    "id": "4d897e0a-b68c-4840-9910-752862308e5b",
+                                                    "name": "lh_silver",
+                                                    "type": "LakehouseReference"
+                                                },
+                                                "additionalLakehouses": [
+                                                    {
+                                                        "id": "e9dcb661-05e8-46bd-be1f-a9cb5ee27446",
+                                                        "name": "lh_bronze",
+                                                        "type": "LakehouseReference"
+                                                    },
+                                                    {
+                                                        "id": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                                        "name": "lh_config",
+                                                        "type": "LakehouseReference"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ],
+                                "ifTrueActivities": [
+                                    {
+                                        "name": "ca_silver_ADVWDB_SalesOrderDetail",
+                                        "type": "Copy",
+                                        "dependsOn": [],
+                                        "policy": {
+                                            "timeout": "0.00:15:00",
+                                            "retry": 1,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "typeProperties": {
+                                            "source": {
+                                                "type": "SqlServerSource",
+                                                "sqlReaderQuery": {
+                                                    "value": "@concat('SELECT TOP 1000 * FROM Sales.SalesOrderDetail WHERE ModifiedDate > ''',item().ultimo_valor_incremental,''' ORDER BY ModifiedDate ASC')",
+                                                    "type": "Expression"
+                                                },
+                                                "queryTimeout": "02:00:00",
+                                                "partitionOption": "None",
+                                                "datasetSettings": {
+                                                    "annotations": [],
+                                                    "type": "SqlServerTable",
+                                                    "schema": [],
+                                                    "typeProperties": {
+                                                        "database": "AdventureWorks2019"
+                                                    },
+                                                    "externalReferences": {
+                                                        "connection": "cafffe28-7d56-4ca4-ac0e-3ac73f036368"
+                                                    }
+                                                }
+                                            },
+                                            "sink": {
+                                                "type": "LakehouseTableSink",
+                                                "tableActionOption": "OverwriteSchema",
+                                                "partitionOption": "None",
+                                                "applyVOrder": false,
+                                                "datasetSettings": {
+                                                    "annotations": [],
+                                                    "linkedService": {
+                                                        "name": "lh_silver",
+                                                        "properties": {
+                                                            "annotations": [],
+                                                            "type": "Lakehouse",
+                                                            "typeProperties": {
+                                                                "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                                                "artifactId": "4d897e0a-b68c-4840-9910-752862308e5b",
+                                                                "rootFolder": "Tables"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "LakehouseTable",
+                                                    "schema": [],
+                                                    "typeProperties": {
+                                                        "schema": "ADVWDB",
+                                                        "table": "SalesOrderDetail_staging"
+                                                    }
+                                                }
+                                            },
+                                            "enableStaging": false,
+                                            "translator": {
+                                                "type": "TabularTranslator",
+                                                "typeConversion": true,
+                                                "typeConversionSettings": {
+                                                    "allowDataTruncation": true,
+                                                    "treatBooleanAsNumber": false
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "nb_silver_ADVWDB_SalesOrderDetail",
+                                        "type": "TridentNotebook",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "ca_silver_ADVWDB_SalesOrderDetail",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.00:30:00",
+                                            "retry": 2,
+                                            "retryIntervalInSeconds": 60,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "typeProperties": {
+                                            "notebookId": "e35d0414-3967-4599-a125-88acc440b7e4",
+                                            "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                            "parameters": {
+                                                "origen_param": {
+                                                    "value": "ADVWDB",
+                                                    "type": "string"
+                                                },
+                                                "nombre_tabla_param": {
+                                                    "value": "SalesOrderDetail",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "lakehouseReferences": {
+                                                "defaultLakehouse": {
+                                                    "id": "4d897e0a-b68c-4840-9910-752862308e5b",
+                                                    "name": "lh_silver",
+                                                    "type": "LakehouseReference"
+                                                },
+                                                "additionalLakehouses": [
+                                                    {
+                                                        "id": "e9dcb661-05e8-46bd-be1f-a9cb5ee27446",
+                                                        "name": "lh_bronze",
+                                                        "type": "LakehouseReference"
+                                                    },
+                                                    {
+                                                        "id": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                                        "name": "lh_config",
+                                                        "type": "LakehouseReference"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "fa_ingesta_ADVWDB",
+                "type": "Fail",
+                "dependsOn": [
+                    {
+                        "activity": "fe_origin_ADVWDB",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "message": "Error en DP_INGST_SilverADVWDB: fallo en el ForEach de tablas ADVWDB. Revisar Monitor para detalle.",
+                    "errorCode": "ADVWDB_SILVER_FAIL"
+                }
+            }
+        ],
+        "lastModifiedByObjectId": "a834ac00-5cfb-4598-bb1d-4fb3b898fb3a",
+        "lastPublishTime": "2026-03-08T21:31:45Z"
+    }
+}

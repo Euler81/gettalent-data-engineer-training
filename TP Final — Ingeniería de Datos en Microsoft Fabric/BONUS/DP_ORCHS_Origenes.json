@@ -1,0 +1,118 @@
+{
+    "name": "DP_ORCHS_Origenes",
+    "objectId": "c78f9665-04c8-41ff-8d8c-8eb87c76686c",
+    "properties": {
+        "description": "Pipeline orquestador maestro — Bloque 1: ejecuta DP_INGST_SilverADVWDB y DP_INGST_SilverSFTP en paralelo. Si ambos exitosos → Bloque 2: ejecuta DP_ORCHS_Gold. Si falla algún origen → fail_origenes detiene todo. Arquitectura según Manual TP: Bloque 1 Orígenes → Bloque 2 Gold.",
+        "activities": [
+            {
+                "name": "exec_DP_INGST_SilverADVWDB",
+                "description": "Ejecuta pipeline Silver ADVWDB — SalesOrderDetail (incremental) y Product (total). Sin dependencias: corre en paralelo con SFTP.",
+                "type": "ExecutePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.02:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "8ea63884-e41b-4f37-8266-b9513bdfcfd2",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true
+                }
+            },
+            {
+                "name": "exec_DP_INGST_SilverSFTP",
+                "description": "Ejecuta pipeline Silver SFTP — SalesOrderHeader (incremental) y Person (total). Sin dependencias: corre en paralelo con ADVWDB.",
+                "type": "ExecutePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.02:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "6c64e546-8773-49d5-b91e-f217c511fddc",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true
+                }
+            },
+            {
+                "name": "exec_DP_ORCHS_Gold",
+                "description": "Bloque 2 — ejecuta DP_ORCHS_Gold solo si ADVWDB y SFTP completaron exitosamente. Dependencia explícita en ambos pipelines de origen (Succeeded). Garantiza que Silver está completo antes de procesar Gold.",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "exec_DP_INGST_SilverADVWDB",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "exec_DP_INGST_SilverSFTP",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.02:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "e47ef6e7-5733-4d16-86fa-892bb81a34da",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true
+                }
+            },
+            {
+                "name": "fail_ADVWDB",
+                "description": "Dispara si DP_INGST_SilverADVWDB falla — detiene el pipeline antes de ejecutar Gold.",
+                "type": "Fail",
+                "dependsOn": [
+                    {
+                        "activity": "exec_DP_INGST_SilverADVWDB",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "message": "Error en DP_ORCHS_Origenes — falló exec_DP_INGST_SilverADVWDB. Gold no ejecutado.",
+                    "errorCode": "ADVWDB_FAIL"
+                }
+            },
+            {
+                "name": "fail_SFTP",
+                "description": "Dispara si DP_INGST_SilverSFTP falla — detiene el pipeline antes de ejecutar Gold.",
+                "type": "Fail",
+                "dependsOn": [
+                    {
+                        "activity": "exec_DP_INGST_SilverSFTP",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "message": "Error en DP_ORCHS_Origenes — falló exec_DP_INGST_SilverSFTP. Gold no ejecutado.",
+                    "errorCode": "SFTP_FAIL"
+                }
+            }
+        ],
+        "lastModifiedByObjectId": "a834ac00-5cfb-4598-bb1d-4fb3b898fb3a",
+        "lastPublishTime": "2026-03-08T20:39:39Z"
+    }
+}

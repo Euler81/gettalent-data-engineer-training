@@ -1,0 +1,167 @@
+{
+    "name": "DP_ORCHS_Gold",
+    "objectId": "e47ef6e7-5733-4d16-86fa-892bb81a34da",
+    "properties": {
+        "description": "Orquestador Gold — Lookup origin_gold → ForEach secuencial por orden. Parametrizado desde lh_config.dbo.origin_gold (sin columna activo — Opción B).",
+        "activities": [
+            {
+                "name": "lk_origin_gold",
+                "description": "Lee tabla origin_gold desde lh_config. firstRowOnly=false — devuelve todos los notebooks Gold ordenados por 'orden'.",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "LakehouseTableSource",
+                        "partitionOption": "None",
+                        "datasetSettings": {
+                            "annotations": [],
+                            "linkedService": {
+                                "name": "lh_config",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "Lakehouse",
+                                    "typeProperties": {
+                                        "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                        "artifactId": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                        "rootFolder": "Tables"
+                                    }
+                                }
+                            },
+                            "type": "LakehouseTable",
+                            "schema": [],
+                            "typeProperties": {
+                                "schema": "dbo",
+                                "table": "origin_gold"
+                            }
+                        }
+                    },
+                    "firstRowOnly": false,
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "lh_config",
+                            "properties": {
+                                "annotations": [],
+                                "type": "Lakehouse",
+                                "typeProperties": {
+                                    "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                    "artifactId": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                    "rootFolder": "Tables"
+                                }
+                            }
+                        },
+                        "type": "LakehouseTable",
+                        "schema": [],
+                        "typeProperties": {
+                            "schema": "dbo",
+                            "table": "origin_gold"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "fe_notebooks_gold",
+                "description": "Itera cada notebook Gold en orden secuencial. isSequential=true garantiza dim_calendario → dim_cliente → dim_producto → fact_ventas.",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "lk_origin_gold",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('lk_origin_gold').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": true,
+                    "activities": [
+                        {
+                            "name": "nb_gold",
+                            "description": "Ejecuta notebook Gold — ID y nombre desde @item().notebook_id",
+                            "type": "TridentNotebook",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.00:20:00",
+                                "retry": 2,
+                                "retryIntervalInSeconds": 60,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "typeProperties": {
+                                "notebookId": {
+                                    "value": "@item().notebook_id",
+                                    "type": "Expression"
+                                },
+                                "workspaceId": "9a547f55-a8f7-4c89-b935-fb3da8226ed0",
+                                "lakehouseReferences": {
+                                    "defaultLakehouse": {
+                                        "id": "902f27e9-dd04-40cf-831a-2610a16fb9a7",
+                                        "name": "lh_gold",
+                                        "type": "LakehouseReference"
+                                    },
+                                    "additionalLakehouses": [
+                                        {
+                                            "id": "4d897e0a-b68c-4840-9910-752862308e5b",
+                                            "name": "lh_silver",
+                                            "type": "LakehouseReference"
+                                        },
+                                        {
+                                            "id": "bcc2be74-375f-42f1-b1c1-b60b5eef55ef",
+                                            "name": "lh_config",
+                                            "type": "LakehouseReference"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "wt_between_notebooks",
+                            "description": "Wait 90s para liberar sesión Spark antes del siguiente notebook Gold (evita error 430 TooManyRequestsForCapacity)",
+                            "type": "Wait",
+                            "dependsOn": [
+                                {
+                                    "activity": "nb_gold",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "typeProperties": {
+                                "waitTimeInSeconds": 180
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "fail_gold",
+                "description": "Captura error del ForEach Gold y detiene el pipeline con error descriptivo.",
+                "type": "Fail",
+                "dependsOn": [
+                    {
+                        "activity": "fe_notebooks_gold",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "message": "Error en DP_ORCHS_Gold: fallo en el ForEach de notebooks Gold. Revisar Monitor para detalle.",
+                    "errorCode": "GOLD_FAIL"
+                }
+            }
+        ],
+        "lastModifiedByObjectId": "a834ac00-5cfb-4598-bb1d-4fb3b898fb3a",
+        "lastPublishTime": "2026-03-08T20:39:36Z"
+    }
+}

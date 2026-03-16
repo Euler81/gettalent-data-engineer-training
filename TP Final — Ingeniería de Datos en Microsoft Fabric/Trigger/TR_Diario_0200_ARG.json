@@ -1,0 +1,34 @@
+{
+    "name": "tr_diario_0200_ARG",
+    "properties": {
+        "description": "Trigger diario 02:00 AM hora Argentina (UTC-3 = 05:00 UTC). Ejecuta DP_ORCHS_Origenes — orquestador maestro. Ventana nocturna: baja carga operativa, Silver y Gold listos para el día.",
+        "annotations": [],
+        "runtimeState": "Started",
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "c78f9665-04c8-41ff-8d8c-8eb87c76686c",
+                    "type": "PipelineReference"
+                },
+                "parameters": {}
+            }
+        ],
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-03-10T05:00:00Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "hours": [
+                        5
+                    ],
+                    "minutes": [
+                        0
+                    ]
+                }
+            }
+        }
+    }
+}
