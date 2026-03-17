@@ -3,6 +3,9 @@
 > Pipeline de ingesta de archivos CSV (fuente SFTP simulada) hacia la capa **Silver** de Microsoft Fabric.  
 > Procesa las tablas **`SalesOrderHeader`** (incremental) y **`Person`** (total), pasando por Bronze antes de llegar a Silver.
 
+![Diagrama del pipeline](SilverSFTP.jpg)
+
+
 ---
 
 ## 🗺️ Diagrama del Pipeline
