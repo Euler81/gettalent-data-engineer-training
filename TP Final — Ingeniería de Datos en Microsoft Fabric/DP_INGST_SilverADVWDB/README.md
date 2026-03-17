@@ -4,6 +4,9 @@
 > Procesa las tablas **`SalesOrderDetail`** (incremental con MERGE) y **`Product`** (carga total),  
 > usando un Copy Activity dinámico por tabla y notebooks PySpark para transformación y tipado.
 
+
+![Diagrama del pipeline](silverADVWDB.jpg)
+
 ---
 
 ## 🗺️ Diagrama del Pipeline
