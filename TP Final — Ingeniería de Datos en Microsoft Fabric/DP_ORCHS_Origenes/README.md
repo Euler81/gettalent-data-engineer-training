@@ -4,6 +4,8 @@
 > Coordina la ejecución secuencial de los dos pipelines de ingesta Silver y el pipeline Gold,  
 > garantizando que el modelo analítico **nunca se construya sobre datos incompletos**.
 
+
+![Diagrama del pipeline](Origenes.jpg)
 ---
 
 ## 🗺️ Diagrama del Pipeline

@@ -4,6 +4,7 @@
 > Ejecuta los 4 notebooks de transformación en secuencia estricta, enriquece con **APIs externas**  
 > y entrega tablas listas para consumo por herramientas de Business Intelligence.
 
+![Diagrama del pipeline](Gold.jpg)
 ---
 
 ## 🗺️ Diagrama del Pipeline
